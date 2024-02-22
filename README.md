@@ -6,9 +6,9 @@ Static OS is a lightweight linux distro for hosting containers. The project is s
 
 * No library dependency, all binary are statically linked.
 * Immutable root fs, /var is writable.
-* Support Multiple CPU Arch. [WIP]
+* Support multiple cpu arch. [WIP]
 * Support kubernetes. [WIP]
-* Atomic update, double partion flip. [WIP]
+* Atomic update, double partition flip. [WIP]
 * API driven, declaration configuration. [WIP]
 
 ## Components
