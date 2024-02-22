@@ -1,0 +1,26 @@
+version: '3'
+services:
+  openssh-server:
+      image: linuxserver/openssh-server:latest
+      restart: always
+      container_name: openssh-server
+
+      ports:
+        - "0.0.0.0:22:2222"
+
+      environment:
+        - PUBLIC_KEY_FILE=/authorized_keys
+        - USER_NAME=${LIMA_CIDATA_USER}
+        - PUID=${LIMA_CIDATA_UID}
+        - PGID=${LIMA_CIDATA_UID}
+        - SUDO_ACCESS=true
+
+      volumes:
+        -  /var/authorized_keys:/authorized_keys
+        -  /var/mnt/lima-cidata/meta-data:/run/lima-ssh-ready
+        -  /var/mnt/lima-cidata/meta-data:/run/lima-boot-done
+        -  /var/mnt/lima-cidata:/mnt/lima-cidata
+        -  /run/containerd/:/run/containerd/
+        -  /var/lib/nerdctl/:/var/lib/nerdctl/
+        -  /etc/cni/net.d/:/etc/cni/net.d/
+        -  /bin/nerdctl:/bin/nerdctl

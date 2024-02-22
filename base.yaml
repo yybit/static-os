@@ -1,0 +1,22 @@
+arch: "x86_64"
+images:
+- location: "/tmp/lima/example-x86_64.img"
+  arch: "x86_64"
+mounts:
+- location: "~/projects"
+  writable: false
+- location: "/tmp/lima"
+  writable: true
+mountType: 9p
+ssh:
+  localPort: 40022
+firmware:
+  legacyBIOS: true
+video:
+  display: cocoa
+containerd:
+  system: false
+  user: false
+provision:
+- mode: dependency
+  skipDefaultDependencyResolution: true

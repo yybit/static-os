@@ -1,0 +1,46 @@
+#cloud-config
+# vim:syntax=yaml
+
+growpart:
+  mode: auto
+  devices: ['/']
+mounts:
+- [mount0, /Users/jack, 9p, "ro,trans=virtio,version=9p2000.L,msize=131072,cache=fscache,nofail", "0", "0"]
+- [mount1, /tmp/lima, 9p, "rw,trans=virtio,version=9p2000.L,msize=131072,cache=mmap,nofail", "0", "0"]
+
+users:
+  - name: "lima"
+    uid: "502"
+    homedir: "/home/lima.linux"
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh-authorized-keys:
+      - "ssh-ed25519 AAAAC3NIaC1lZDI2NTE5AAAAIBL5+r7b6ZDaAaITtVaBU7OMfUZkqV1MYcbSrWfuPT8M jack"
+
+write_files:
+ - content: |
+      #!/bin/sh
+      set -eux
+      LIMA_CIDATA_MNT="/mnt/lima-cidata"
+      LIMA_CIDATA_DEV="/dev/disk/by-label/cidata"
+      mkdir -p -m 700 "${LIMA_CIDATA_MNT}"
+      mount -o ro,mode=0700,dmode=0700,overriderockperm,exec,uid=0 "${LIMA_CIDATA_DEV}" "${LIMA_CIDATA_MNT}"
+      export LIMA_CIDATA_MNT
+      exec "${LIMA_CIDATA_MNT}"/boot.sh
+   owner: root:root
+   path: /var/lib/cloud/scripts/per-boot/00-lima.boot.sh
+   permissions: '0755'
+# This has no effect on systems using systemd-resolved, but is used
+# on e.g. Alpine to set up /etc/resolv.conf on first boot.
+
+manage_resolv_conf: true
+
+resolv_conf:
+  nameservers:
+  - 192.168.5.3
+
+
+ca-certs:
+  remove_defaults: false
+  trusted:

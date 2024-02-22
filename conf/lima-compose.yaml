@@ -1,0 +1,16 @@
+version: '3'
+services:
+  lima-guestagent:
+      image: empty:latest
+      restart: always
+      container_name: lima-guestagent
+
+      privileged: true
+      network_mode: "host" 
+
+      volumes:
+        -  /var/mnt/lima-cidata:/mnt/lima-cidata
+        -  /dev/${VPORT_DEVICE_NAME}:/dev/virtio-ports/io.lima-vm.guest_agent.0
+        -  /dev/rtc:/dev/rtc
+
+      entrypoint: ["/mnt/lima-cidata/lima-guestagent", "daemon", "--vsock-port", "${LIMA_CIDATA_VSOCK_PORT}"]
