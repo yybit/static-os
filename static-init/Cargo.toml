@@ -11,4 +11,10 @@ thiserror = "1.0.57"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_yaml = "0.9.32"
 
-nix = { version = "0.27.1", features = ["mount", "hostname"] }
+nix = { version = "0.27.1", features = [
+    "mount",
+    "hostname",
+    "signal",
+    "reboot",
+] }
+signal-hook = "0.3.17"

@@ -11,6 +11,15 @@ use std::{
 };
 
 use errors::InitError;
+use nix::{
+    libc::{SIGINT, SIGTERM, SIGTSTP, SIGUSR1, SIGUSR2},
+    sys::{
+        reboot::{reboot, RebootMode},
+        signal::{kill, Signal},
+    },
+    unistd::Pid,
+};
+use signal_hook::iterator::Signals;
 
 use crate::{
     cloudconfig::{MetaData, UserData},
@@ -84,6 +93,46 @@ fn conn_network() -> Result<(), InitError> {
 
 fn start_shell() -> Result<(), InitError> {
     Command::new("/bin/sh").status()?;
+    Ok(())
+}
+
+fn handle_signals() -> Result<(), InitError> {
+    let mut signals = Signals::new(&[SIGTERM, SIGUSR1, SIGUSR2, SIGINT, SIGTSTP])?;
+
+    thread::spawn(move || {
+        for sig in signals.forever() {
+            println!("Received signal {:?}", sig);
+            if let Ok(s) = sig.try_into() {
+                match s {
+                    Signal::SIGUSR1 | Signal::SIGUSR2 | Signal::SIGTERM => {
+                        if let Err(err) = kill(Pid::from_raw(-1), Signal::SIGTERM) {
+                            eprintln!("Failed to send SIGTERM to child processes: {}", err);
+                        }
+                        thread::sleep(Duration::from_secs(3));
+                        let mode = match s {
+                            Signal::SIGUSR1 => RebootMode::RB_HALT_SYSTEM,
+                            Signal::SIGUSR2 => RebootMode::RB_POWER_OFF,
+                            Signal::SIGTERM => RebootMode::RB_AUTOBOOT,
+                            _ => RebootMode::RB_AUTOBOOT,
+                        };
+                        if let Err(err) = reboot(mode) {
+                            eprintln!(
+                                "Failed to exec reboot syscall with mode {:?}: {}",
+                                mode, err
+                            );
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+    });
+
+    Ok(())
+}
+
+fn start_acpid() -> Result<(), InitError> {
+    Command::new("/bin/acpid").status()?;
     Ok(())
 }
 
@@ -293,6 +342,10 @@ fn lima() {
 fn main() {
     println!("init......");
     init().unwrap();
+    println!("handle signals......");
+    handle_signals().unwrap();
+    println!("acpid......");
+    start_acpid().unwrap();
     println!("containerd......");
     start_containerd().unwrap();
     println!("Welcome to static os");

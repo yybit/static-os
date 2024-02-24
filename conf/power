@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "acpid found the power-off event. Executing \"poweroff -f\" now" > /dev/ttyS0
+poweroff -f

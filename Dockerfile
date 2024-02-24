@@ -96,3 +96,5 @@ COPY --from=openssh /var/openssh/bin/ ${ROOT_PATH}/bin/
 COPY --from=openssh /var/openssh/sbin/ ${ROOT_PATH}/sbin/
 COPY --chmod=644 conf/openssh-compose.yaml ${ROOT_PATH}/etc/openssh-compose.yaml
 COPY --chmod=644 conf/lima-compose.yaml ${ROOT_PATH}/etc/lima-compose.yaml
+COPY --chmod=644 conf/acpid.conf ${ROOT_PATH}/etc/acpid.conf
+COPY --chmod=755 conf/power ${ROOT_PATH}/etc/acpi/power
