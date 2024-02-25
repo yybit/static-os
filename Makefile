@@ -1,6 +1,6 @@
 BUSYBOX_VERSION=1.36.1
 LINUX_VERSION=6.7.1
-LINUX_MAJOR_VERSION=$(firstword $(LINUX_VERSION))
+LINUX_MAJOR_VERSION=6
 RUNC_VERSION=1.1.11
 CNI_PLUGINS_VERSION=1.4.0
 CONTAINERD_VERSION=1.7.12
@@ -80,6 +80,7 @@ assets: \
 	assets/cacert-$(CACERT_VERSION).cer \
 	assets/iptables-$(IPTABLES_VERSION).tar.xz \
 	assets/empty-image.tar \
+	assets/openssh-server.tar \
 	assets/zlib-$(ZLIB_VERSION).tar.gz \
 	assets/openssl-$(OPENSSL_VERSION).tar.gz \
 	assets/openssh-portable-$(OPENSSH_VERSION).tar.gz
@@ -114,9 +115,13 @@ assets/zlib-$(ZLIB_VERSION).tar.gz:
 assets/openssl-$(OPENSSL_VERSION).tar.gz:
 	curl -o $@ -L https://github.com/openssl/openssl/releases/download/openssl-$(OPENSSL_VERSION)/openssl-$(OPENSSL_VERSION).tar.gz
 
-assets/openssh--portable-$(OPENSSH_VERSION).tar.gz:
+assets/openssh-portable-$(OPENSSH_VERSION).tar.gz:
 	curl -o $@ -L https://github.com/openssh/openssh-portable/archive/refs/tags/$(OPENSSH_VERSION).tar.gz
 
 assets/empty-image.tar:
 	$(DOCKER_CLI) build -t empty -f Dockerfile_empty .
 	$(DOCKER_CLI) save empty > $@
+
+assets/openssh-server.tar:
+	$(DOCKER_CLI) pull linuxserver/openssh-server:latest
+	$(DOCKER_CLI) save linuxserver/openssh-server:latest > $@
