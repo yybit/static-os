@@ -30,7 +30,11 @@ Static OS is a lightweight linux distro for hosting containers. The project is s
 ### Prepare
 
 Before building image, [Docker](https://www.docker.com/) or [Nerdctl](https://github.com/containerd/nerdctl) need to be installed.
-If you cross-compile the image，Run this to support multiple platform. `DOCKER_CLI=nerdctl ${DOCKER_CLI} run --privileged --rm tonistiigi/binfmt --install all``
+If you cross-compile the image，run this to support multiple platform. 
+```shell
+# docker or nerdctl
+docker run --privileged --rm tonistiigi/binfmt --install all
+```
 
 ### Build disk image
 
