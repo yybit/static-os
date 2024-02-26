@@ -23,12 +23,11 @@ ARCH_KERNEL_aarch64 = arm64
 ARCH_KERNEL = $(shell echo "$(ARCH_KERNEL_$(ARCH))")
 
 DOCKER_CLI=docker
-BUILDER_NAME=static-os-builder
-BUILDER_VERSION=0.0.1
-BUILDER_TAG=$(BUILDER_NAME):0.0.1-$(ARCH)
+BUILDER_TAG=static-os/builder
+RUST_MUSL_TAG=static-os/rust-musl
 
 .PHONY: builder
-builder: assets init
+builder: assets
 	$(DOCKER_CLI) build -t $(BUILDER_TAG) \
 	--build-arg BUSYBOX_VERSION=$(BUSYBOX_VERSION) \
 	--build-arg LINUX_VERSION=$(LINUX_VERSION) \
@@ -47,9 +46,13 @@ builder: assets init
 	--platform linux/$(ARCH_ALIAS) \
 	.
 
-.PHONY: init
-init:
-	cargo zigbuild --target $(ARCH)-unknown-linux-musl --release
+target/$(ARCH)-unknown-linux-musl/release/static-init:
+	$(DOCKER_CLI) build -t $(RUST_MUSL_TAG) -f Dockerfile_rust-musl \
+	--build-arg ARCH=$(ARCH) \
+	--platform linux/$(ARCH_ALIAS) \
+	.
+	$(DOCKER_CLI) run --rm -v ${PWD}:/app -v ${HOME}/.cargo:/root/.cargo $(RUST_MUSL_TAG) \
+	cargo build --target $(ARCH)-unknown-linux-musl --release
 
 .PHONY: img
 img: builder
@@ -83,7 +86,8 @@ assets: \
 	assets/openssh-server.tar \
 	assets/zlib-$(ZLIB_VERSION).tar.gz \
 	assets/openssl-$(OPENSSL_VERSION).tar.gz \
-	assets/openssh-portable-$(OPENSSH_VERSION).tar.gz
+	assets/openssh-portable-$(OPENSSH_VERSION).tar.gz \
+	target/$(ARCH)-unknown-linux-musl/release/static-init
 
 assets/busybox-$(BUSYBOX_VERSION).tar.bz2:
 	curl -o $@ -L https://www.busybox.net/downloads/busybox-$(BUSYBOX_VERSION).tar.bz2
