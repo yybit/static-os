@@ -3,7 +3,7 @@ use std::{
     env,
     fs::{self, File},
     io::{self, BufRead},
-    os::unix::fs::PermissionsExt,
+    os::unix::{fs::PermissionsExt, process::CommandExt},
     path::Path,
     process::{Command, Stdio},
     thread,
@@ -12,7 +12,7 @@ use std::{
 
 use errors::InitError;
 use nix::{
-    libc::{SIGINT, SIGTERM, SIGTSTP, SIGUSR1, SIGUSR2},
+    libc::{self, SIGINT, SIGTERM, SIGTSTP, SIGUSR1, SIGUSR2},
     sys::{
         reboot::{reboot, RebootMode},
         signal::{kill, Signal},
@@ -92,7 +92,15 @@ fn conn_network() -> Result<(), InitError> {
 }
 
 fn start_shell() -> Result<(), InitError> {
-    Command::new("/bin/sh").status()?;
+    let mut cmd = Command::new("/bin/sh");
+    unsafe {
+        cmd.pre_exec(|| {
+            libc::setsid();
+            libc::ioctl(0, libc::TIOCSCTTY, 1);
+            Ok(())
+        });
+    }
+    cmd.status()?;
     Ok(())
 }
 
