@@ -26,6 +26,15 @@ DOCKER_CLI=docker
 BUILDER_TAG=static-os/builder
 RUST_MUSL_TAG=static-os/rust-musl
 
+QEMU_EFI_FIRMWARE=$(shell dirname $(shell dirname $(shell which qemu-system-$(ARCH))))/share/qemu/edk2-$(ARCH)-code.fd
+
+BIOS ?= uefi
+ifeq ($(filter $(BIOS),uefi legacy),)
+    $(error BIOS variable can only be set to uefi or legacy)
+endif
+
+OUT_IMG=example-$(ARCH)-${BIOS}.img
+
 .PHONY: builder
 builder: assets
 	$(DOCKER_CLI) build -t $(BUILDER_TAG) \
@@ -51,7 +60,7 @@ target/$(ARCH)-unknown-linux-musl/release/static-init:
 	--build-arg ARCH=$(ARCH) \
 	--platform linux/$(ARCH_ALIAS) \
 	.
-	$(DOCKER_CLI) run --rm -v ${PWD}:/app -v ${HOME}/.cargo:/root/.cargo $(RUST_MUSL_TAG) \
+	$(DOCKER_CLI) run --rm -v ${PWD}:/app -v ${HOME}/.cargo:/root/.cargo --platform linux/$(ARCH_ALIAS) $(RUST_MUSL_TAG) \
 	cargo build --target $(ARCH)-unknown-linux-musl --release
 
 .PHONY: img
@@ -61,16 +70,25 @@ img: builder
 	-v /tmp/lima:/output \
 	--platform linux/$(ARCH_ALIAS) \
 	--rm $(BUILDER_TAG) \
-	/static-os/mkimg.sh /rootfs /output/example-$(ARCH).img
+	/static-os/mkimg.sh /rootfs /output/$(OUT_IMG) $(ARCH) $(BIOS)
 
 .PHONY: run
 run:
-	qemu-system-$(ARCH) -drive format=raw,file=/tmp/lima/example-$(ARCH).img,index=0,media=disk,if=virtio \
-	-net nic,model=virtio -net user,hostfwd=tcp::10022-:22 -m 1G -nographic
+	@if [ "$(BIOS)" = "uefi" ]; then\
+		qemu-system-$(ARCH) \
+		-drive if=pflash,format=raw,readonly=on,file=$(QEMU_EFI_FIRMWARE) \
+		-drive format=raw,file=/tmp/lima/$(OUT_IMG),if=virtio \
+		-boot order=c,splash-time=0,menu=on \
+		-net nic,model=virtio -net user,hostfwd=tcp::10022-:22 -m 1G -nographic; \
+	else \
+		qemu-system-$(ARCH) \
+		-drive format=raw,file=/tmp/lima/$(OUT_IMG),if=virtio \
+		-net nic,model=virtio -net user,hostfwd=tcp::10022-:22 -m 1G -nographic; \
+    fi
 
 .PHONY: lima
 lima:
-	Variant=base ARCH=$(ARCH) ./lima.sh
+	Variant=base ARCH=$(ARCH) BIOS=$(BIOS) OUT_IMG=$(OUT_IMG) ./lima.sh
 
 .PHONY: assets
 assets: \

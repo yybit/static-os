@@ -60,7 +60,7 @@ RUN cd ${OPENSSH_SOURCE_PATH} \
 FROM ubuntu:jammy
 RUN apt update && apt install -y make gcc bzip2 build-essential
 RUN apt install -y parted kpartx grub2-common dosfstools
-RUN apt install -y grub-pc
+RUN apt install -y grub-efi
 ARG ROOT_PATH=/rootfs
 ARG RUNC_VERSION
 ARG CNI_PLUGINS_VERSION

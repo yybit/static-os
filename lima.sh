@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -eu
 
+case "${BIOS}" in
+  uefi) legacyBIOS=false;;
+  legacy) legacyBIOS=true;;
+esac
+
 case "$(uname)" in
   Darwin) display=cocoa;;
   Linux) display=gtk;;
@@ -8,7 +13,7 @@ esac
 cat <<EOF >"${Variant}.yaml"
 arch: "${ARCH}"
 images:
-- location: "/tmp/lima/example-${ARCH}.img"
+- location: "/tmp/lima/${OUT_IMG}"
   arch: "${ARCH}"
 mounts:
 - location: "~/projects"
@@ -19,7 +24,7 @@ mountType: 9p
 ssh:
   localPort: 40022
 firmware:
-  legacyBIOS: true
+  legacyBIOS: $legacyBIOS
 video:
   display: $display
 containerd:

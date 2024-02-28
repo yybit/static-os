@@ -1,6 +1,6 @@
 arch: "x86_64"
 images:
-- location: "/tmp/lima/example-x86_64.img"
+- location: "/tmp/lima/example-x86_64-uefi.img"
   arch: "x86_64"
 mounts:
 - location: "~/projects"
@@ -11,7 +11,7 @@ mountType: 9p
 ssh:
   localPort: 40022
 firmware:
-  legacyBIOS: true
+  legacyBIOS: false
 video:
   display: cocoa
 containerd:
