@@ -25,6 +25,19 @@ ARCH_KERNEL = $(shell echo "$(ARCH_KERNEL_$(ARCH))")
 DOCKER_CLI=docker
 BUILDER_TAG=static-os/builder
 RUST_MUSL_TAG=static-os/rust-musl
+OPENSSH_TAG=static-os/openssh
+IPTABLES_TAG=static-os/iptables
+KERNEL_TAG=static-os/kernel
+BUSYBOX_TAG=static-os/busybox
+
+QEMU_EFI_FIRMWARE=$(shell dirname $(shell dirname $(shell which qemu-system-$(ARCH))))/share/qemu/edk2-$(ARCH)-code.fd
+
+BIOS ?= uefi
+ifeq ($(filter $(BIOS),uefi legacy),)
+    $(error BIOS variable can only be set to uefi or legacy)
+endif
+
+OUT_IMG=example-$(ARCH)-${BIOS}.img
 
 QEMU_EFI_FIRMWARE=$(shell dirname $(shell dirname $(shell which qemu-system-$(ARCH))))/share/qemu/edk2-$(ARCH)-code.fd
 
@@ -56,7 +69,7 @@ builder: assets
 	.
 
 target/$(ARCH)-unknown-linux-musl/release/static-init:
-	$(DOCKER_CLI) build -t $(RUST_MUSL_TAG) -f Dockerfile_rust-musl \
+	$(DOCKER_CLI) build -t $(RUST_MUSL_TAG) -f pkgs/rust-musl/Dockerfile \
 	--build-arg ARCH=$(ARCH) \
 	--platform linux/$(ARCH_ALIAS) \
 	.
@@ -105,6 +118,10 @@ assets: \
 	assets/zlib-$(ZLIB_VERSION).tar.gz \
 	assets/openssl-$(OPENSSL_VERSION).tar.gz \
 	assets/openssh-portable-$(OPENSSH_VERSION).tar.gz \
+	assets/openssh-portable-$(OPENSSH_VERSION)-$(ARCH_ALIAS).tar.gz \
+	assets/iptables-$(IPTABLES_VERSION)-$(ARCH_ALIAS) \
+	assets/vmlinuz-$(LINUX_VERSION)-$(ARCH_ALIAS) \
+	assets/busybox-$(BUSYBOX_VERSION)-$(ARCH_ALIAS) \
 	target/$(ARCH)-unknown-linux-musl/release/static-init
 
 assets/busybox-$(BUSYBOX_VERSION).tar.bz2:
@@ -141,9 +158,59 @@ assets/openssh-portable-$(OPENSSH_VERSION).tar.gz:
 	curl -o $@ -L https://github.com/openssh/openssh-portable/archive/refs/tags/$(OPENSSH_VERSION).tar.gz
 
 assets/empty-image.tar:
-	$(DOCKER_CLI) build -t empty -f Dockerfile_empty .
+	$(DOCKER_CLI) build -t empty -f pkgs/empty/Dockerfile .
 	$(DOCKER_CLI) save empty > $@
 
 assets/openssh-server.tar:
 	$(DOCKER_CLI) pull linuxserver/openssh-server:latest
 	$(DOCKER_CLI) save linuxserver/openssh-server:latest > $@
+
+.PHONY: openssh
+openssh:
+	$(DOCKER_CLI) build -t $(OPENSSH_TAG) \
+	--build-arg ZLIB_VERSION=$(ZLIB_VERSION) \
+	--build-arg OPENSSL_VERSION=$(OPENSSL_VERSION) \
+	--build-arg OPENSSH_VERSION=$(OPENSSH_VERSION) \
+	--platform linux/$(ARCH_ALIAS) \
+	-f pkgs/openssh/Dockerfile \
+	.
+
+assets/openssh-portable-$(OPENSSH_VERSION)-$(ARCH_ALIAS).tar.gz:
+	$(DOCKER_CLI) run --rm -v ${PWD}:/app --platform linux/$(ARCH_ALIAS) $(OPENSSH_TAG) \
+	sh -c 'cd /var/openssh && tar -zhcvf /app/$@ bin sbin'
+
+.PHONY: iptables
+iptables:
+	$(DOCKER_CLI) build -t $(IPTABLES_TAG) \
+	--build-arg IPTABLES_VERSION=$(IPTABLES_VERSION) \
+	--platform linux/$(ARCH_ALIAS) \
+	-f pkgs/iptables/Dockerfile \
+	.
+
+assets/iptables-$(IPTABLES_VERSION)-$(ARCH_ALIAS):
+	$(DOCKER_CLI) run --rm -v ${PWD}:/app --platform linux/$(ARCH_ALIAS) $(IPTABLES_TAG) \
+	sh -c 'cp /pkg/usr/sbin/xtables-legacy-multi /app/$@'
+
+.PHONY: kernel
+kernel:
+	$(DOCKER_CLI) build -t $(KERNEL_TAG) \
+	--build-arg LINUX_VERSION=$(LINUX_VERSION) \
+	--platform linux/$(ARCH_ALIAS) \
+	-f pkgs/kernel/Dockerfile \
+	.
+
+assets/vmlinuz-$(LINUX_VERSION)-$(ARCH_ALIAS):
+	$(DOCKER_CLI) run --rm -v ${PWD}:/app --platform linux/$(ARCH_ALIAS) $(KERNEL_TAG) \
+	cp /linux_build/arch/${ARCH_KERNEL}/boot/bzImage /app/$@
+
+.PHONY: busybox
+busybox:
+	$(DOCKER_CLI) build -t $(BUSYBOX_TAG) \
+	--build-arg BUSYBOX_VERSION=$(BUSYBOX_VERSION) \
+	--platform linux/$(ARCH_ALIAS) \
+	-f pkgs/busybox/Dockerfile \
+	.
+
+assets/busybox-$(BUSYBOX_VERSION)-$(ARCH_ALIAS):
+	$(DOCKER_CLI) run --rm -v ${PWD}:/app --platform linux/$(ARCH_ALIAS) $(BUSYBOX_TAG) \
+	cp /busybox_build/busybox /app/$@
