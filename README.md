@@ -36,6 +36,15 @@ If you cross-compile the image，run this to support multiple platform.
 docker run --privileged --rm tonistiigi/binfmt --install all
 ```
 
+### Build components
+
+```shell
+# Use `docker` cli by default
+make kernel busybox iptables openssh
+# Use a docker-compatible cli
+make kernel busybox iptables openssh DOCKER_CLI='lima sudo nerdctl'
+```
+
 ### Build disk image
 
 ```shell
