@@ -2,3 +2,5 @@
 !/assets/.gitkeep
 /target
 Cargo.lock
+
+pkgs/rust-musl/config.toml

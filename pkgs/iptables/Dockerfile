@@ -1,6 +1,8 @@
 ### Build iptables, https://www.netfilter.org/projects/iptables/index.html
-FROM ubuntu:jammy as iptables
-RUN apt update && apt install -y make gcc bzip2 build-essential
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+# RUN apt update && apt install -y make gcc bzip2 build-essential
+RUN apk add make gcc bzip2 build-base linux-headers
 ARG IPTABLES_VERSION
 ARG SOURCE_PATH=/iptables-${IPTABLES_VERSION}
 ADD assets${SOURCE_PATH}.tar.xz /

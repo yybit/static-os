@@ -1,6 +1,9 @@
 # Build openssh, https://www.openssh.com/
-FROM ubuntu:jammy as openssh
-RUN apt update && apt install -y make gcc bzip2 build-essential
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+# RUN apt update && apt install -y make gcc bzip2 build-essential
+RUN apk add make gcc bzip2 build-base linux-headers
+RUN apk add perl
 ARG OUT_DIR=/out
 RUN mkdir ${OUT_DIR}
 ARG ZLIB_VERSION
@@ -11,7 +14,8 @@ ARG OPENSSL_VERSION
 ARG OPENSSL_SOURCE_PATH=/openssl-${OPENSSL_VERSION}
 ADD assets${OPENSSL_SOURCE_PATH}.tar.gz /
 RUN cd ${OPENSSL_SOURCE_PATH} && ./config --prefix="${OUT_DIR}" no-shared && make && make install
-RUN apt install -y autoconf
+# RUN apt install -y autoconf
+RUN apk add autoconf automake
 ARG OPENSSH_VERSION
 ARG OPENSSH_SOURCE_PATH=/openssh-portable-${OPENSSH_VERSION}
 ARG OPENSSH_OUT_DIR=/var/openssh

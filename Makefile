@@ -22,24 +22,23 @@ ARCH_KERNEL_x86_64 = x86
 ARCH_KERNEL_aarch64 = arm64
 ARCH_KERNEL = $(shell echo "$(ARCH_KERNEL_$(ARCH))")
 
-DOCKER_CLI=docker
-BUILDER_TAG=static-os/builder
-RUST_MUSL_TAG=static-os/rust-musl
-OPENSSH_TAG=static-os/openssh
-IPTABLES_TAG=static-os/iptables
-KERNEL_TAG=static-os/kernel
-BUSYBOX_TAG=static-os/busybox
+DOCKER_CLI?=docker
+BUILDER_TAG?=static-os/builder
+RUST_MUSL_TAG?=static-os/rust-musl
+OPENSSH_TAG?=static-os/openssh
+IPTABLES_TAG?=static-os/iptables
+KERNEL_TAG?=static-os/kernel
+BUSYBOX_TAG?=static-os/busybox
+BASE_IMAGE?=alpine:latest
+RUSTUP_DIST_SERVER?=https://static.rust-lang.org
 
-QEMU_EFI_FIRMWARE=$(shell dirname $(shell dirname $(shell which qemu-system-$(ARCH))))/share/qemu/edk2-$(ARCH)-code.fd
-
-BIOS ?= uefi
-ifeq ($(filter $(BIOS),uefi legacy),)
-    $(error BIOS variable can only be set to uefi or legacy)
+ifeq ($(shell uname -s),Darwin)
+ QEMU_EFI_FIRMWARE=$(shell dirname $(shell dirname $(shell which qemu-system-$(ARCH))))/share/qemu/edk2-$(ARCH)-code.fd
+else
+# On Linux, use the OVMF firmware provided by the edk2 project
+# TODO: architecture detection
+ QEMU_EFI_FIRMWARE=/usr/share/edk2/x64/OVMF.4m.fd
 endif
-
-OUT_IMG=example-$(ARCH)-${BIOS}.img
-
-QEMU_EFI_FIRMWARE=$(shell dirname $(shell dirname $(shell which qemu-system-$(ARCH))))/share/qemu/edk2-$(ARCH)-code.fd
 
 BIOS ?= uefi
 ifeq ($(filter $(BIOS),uefi legacy),)
@@ -65,15 +64,18 @@ builder: assets
 	--build-arg ARCH=$(ARCH) \
 	--build-arg ARCH_ALIAS=$(ARCH_ALIAS) \
 	--build-arg ARCH_KERNEL=$(ARCH_KERNEL) \
+	--build-arg BASE_IMAGE=$(BASE_IMAGE) \
 	--platform linux/$(ARCH_ALIAS) \
 	.
 
 target/$(ARCH)-unknown-linux-musl/release/static-init:
-	$(DOCKER_CLI) build -t $(RUST_MUSL_TAG) -f pkgs/rust-musl/Dockerfile \
+	$(DOCKER_CLI) build -t $(RUST_MUSL_TAG) \
+	--build-arg BASE_IMAGE=$(BASE_IMAGE) \
 	--build-arg ARCH=$(ARCH) \
+	--build-arg RUSTUP_DIST_SERVER=$(RUSTUP_DIST_SERVER) \
 	--platform linux/$(ARCH_ALIAS) \
-	.
-	$(DOCKER_CLI) run --rm -v ${PWD}:/app -v ${HOME}/.cargo:/root/.cargo --platform linux/$(ARCH_ALIAS) $(RUST_MUSL_TAG) \
+	pkgs/rust-musl
+	$(DOCKER_CLI) run --rm -v ${PWD}:/app --platform linux/$(ARCH_ALIAS) $(RUST_MUSL_TAG) \
 	cargo build --target $(ARCH)-unknown-linux-musl --release
 
 .PHONY: img
@@ -114,7 +116,6 @@ assets: \
 	assets/cacert-$(CACERT_VERSION).cer \
 	assets/iptables-$(IPTABLES_VERSION).tar.xz \
 	assets/empty-image.tar \
-	assets/openssh-server.tar \
 	assets/zlib-$(ZLIB_VERSION).tar.gz \
 	assets/openssl-$(OPENSSL_VERSION).tar.gz \
 	assets/openssh-portable-$(OPENSSH_VERSION).tar.gz \
@@ -171,6 +172,7 @@ openssh:
 	--build-arg ZLIB_VERSION=$(ZLIB_VERSION) \
 	--build-arg OPENSSL_VERSION=$(OPENSSL_VERSION) \
 	--build-arg OPENSSH_VERSION=$(OPENSSH_VERSION) \
+	--build-arg BASE_IMAGE=$(BASE_IMAGE) \
 	--platform linux/$(ARCH_ALIAS) \
 	-f pkgs/openssh/Dockerfile \
 	.
@@ -183,6 +185,7 @@ assets/openssh-portable-$(OPENSSH_VERSION)-$(ARCH_ALIAS).tar.gz:
 iptables:
 	$(DOCKER_CLI) build -t $(IPTABLES_TAG) \
 	--build-arg IPTABLES_VERSION=$(IPTABLES_VERSION) \
+	--build-arg BASE_IMAGE=$(BASE_IMAGE) \
 	--platform linux/$(ARCH_ALIAS) \
 	-f pkgs/iptables/Dockerfile \
 	.
@@ -195,6 +198,7 @@ assets/iptables-$(IPTABLES_VERSION)-$(ARCH_ALIAS):
 kernel:
 	$(DOCKER_CLI) build -t $(KERNEL_TAG) \
 	--build-arg LINUX_VERSION=$(LINUX_VERSION) \
+	--build-arg BASE_IMAGE=$(BASE_IMAGE) \
 	--platform linux/$(ARCH_ALIAS) \
 	-f pkgs/kernel/Dockerfile \
 	.
@@ -207,6 +211,7 @@ assets/vmlinuz-$(LINUX_VERSION)-$(ARCH_ALIAS):
 busybox:
 	$(DOCKER_CLI) build -t $(BUSYBOX_TAG) \
 	--build-arg BUSYBOX_VERSION=$(BUSYBOX_VERSION) \
+	--build-arg BASE_IMAGE=$(BASE_IMAGE) \
 	--platform linux/$(ARCH_ALIAS) \
 	-f pkgs/busybox/Dockerfile \
 	.

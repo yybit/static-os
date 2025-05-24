@@ -1,6 +1,8 @@
-FROM ubuntu:jammy
-RUN apt update && apt install -y parted kpartx grub2-common dosfstools
-RUN apt install -y grub-efi
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+# RUN apt update && apt install -y parted kpartx grub2-common dosfstools
+# RUN apt install -y grub-efi
+RUN apk add parted multipath-tools grub grub-efi dosfstools efitools e2fsprogs util-linux
 ARG ROOT_PATH=/rootfs
 ARG RUNC_VERSION
 ARG CNI_PLUGINS_VERSION
@@ -32,7 +34,7 @@ COPY --chmod=644 conf/hosts ${ROOT_PATH}/etc/hosts
 COPY --chmod=644 conf/fstab ${ROOT_PATH}/etc/fstab
 COPY --chmod=644 conf/sshd_config ${ROOT_PATH}/etc/sshd_config
 COPY --chmod=644 conf/containerd_config.toml ${ROOT_PATH}/etc/containerd/config.toml
-COPY --chmod=644 assets/openssh-server.tar ${ROOT_PATH}/opt/images/openssh-server.tar
+# COPY --chmod=644 assets/openssh-server.tar ${ROOT_PATH}/opt/images/openssh-server.tar
 COPY --chmod=644 assets/empty-image.tar ${ROOT_PATH}/opt/images/empty-image.tar
 RUN cd ${ROOT_PATH} && mkdir -p dev sys proc var tmp run etc/cni var/cni && touch etc/passwd etc/group
 ADD assets/openssh-portable-${OPENSSH_VERSION}-${ARCH_ALIAS}.tar.gz ${ROOT_PATH}/

@@ -1,6 +1,8 @@
 ### Build busybox, https://www.busybox.net/
-FROM ubuntu:jammy as busybox
-RUN apt update && apt install -y make gcc bzip2 build-essential
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+# RUN apt update && apt install -y make gcc bzip2 build-essential
+RUN apk add make gcc bzip2 build-base linux-headers
 ARG BUSYBOX_VERSION
 ARG SOURCE_PATH=/busybox-${BUSYBOX_VERSION}
 ARG BUILD_PATH=/busybox_build

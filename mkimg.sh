@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 
 set -x
 
@@ -15,7 +15,11 @@ umount /mnt/example
 set -ue 
 
 if [ "$bios" = "legacy" ]; then
-    apt remove -y grub-efi && apt autoremove -y && apt install -y grub-pc
+    if [ -f /etc/alpine-release ]; then
+        apk del grub-efi && apk add grub-bios
+    elif [ -f /etc/lsb-release ] || [ -f /etc/os-release ]; then
+        apt remove -y grub-efi && apt autoremove -y && apt install -y grub-pc
+    fi
 fi
 
 touch $image_name

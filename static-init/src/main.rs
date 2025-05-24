@@ -274,18 +274,18 @@ fn lima() {
             .output()
             .unwrap();
     }
-    let openssh_image_exist = Command::new(NERDCTL_PATH)
-        .args(["image", "inspect", OPENSSH_IMAGE_TAG])
-        .output()
-        .unwrap();
-    if !openssh_image_exist.status.success() {
-        let openssh_image_reader = File::open(OPENSSH_IMAGE_TAR).unwrap();
-        Command::new(NERDCTL_PATH)
-            .args(["load"])
-            .stdin(openssh_image_reader)
-            .output()
-            .unwrap();
-    }
+    // let openssh_image_exist = Command::new(NERDCTL_PATH)
+    //     .args(["image", "inspect", OPENSSH_IMAGE_TAG])
+    //     .output()
+    //     .unwrap();
+    // if !openssh_image_exist.status.success() {
+    //     let openssh_image_reader = File::open(OPENSSH_IMAGE_TAR).unwrap();
+    //     Command::new(NERDCTL_PATH)
+    //         .args(["load"])
+    //         .stdin(openssh_image_reader)
+    //         .output()
+    //         .unwrap();
+    // }
 
     let lima_env_reader = File::open(Path::new(&mnt).join("lima.env")).unwrap();
     let envs = io::BufReader::new(lima_env_reader)
