@@ -31,6 +31,7 @@ KERNEL_TAG?=static-os/kernel
 BUSYBOX_TAG?=static-os/busybox
 BASE_IMAGE?=alpine:latest
 RUSTUP_DIST_SERVER?=https://static.rust-lang.org
+IMAGE_DIR?=/tmp/lima
 
 ifeq ($(shell uname -s),Darwin)
  QEMU_EFI_FIRMWARE=$(shell dirname $(shell dirname $(shell which qemu-system-$(ARCH))))/share/qemu/edk2-$(ARCH)-code.fd
@@ -82,7 +83,7 @@ target/$(ARCH)-unknown-linux-musl/release/static-init:
 img: builder
 	$(DOCKER_CLI) run --privileged \
 	-v ${PWD}:/static-os \
-	-v /tmp/lima:/output \
+	-v $(IMAGE_DIR):/output \
 	--platform linux/$(ARCH_ALIAS) \
 	--rm $(BUILDER_TAG) \
 	/static-os/mkimg.sh /rootfs /output/$(OUT_IMG) $(ARCH) $(BIOS)
@@ -92,12 +93,12 @@ run:
 	@if [ "$(BIOS)" = "uefi" ]; then\
 		qemu-system-$(ARCH) \
 		-drive if=pflash,format=raw,readonly=on,file=$(QEMU_EFI_FIRMWARE) \
-		-drive format=raw,file=/tmp/lima/$(OUT_IMG),if=virtio \
+		-drive format=raw,file=$(IMAGE_DIR)/$(OUT_IMG),if=virtio \
 		-boot order=c,splash-time=0,menu=on \
 		-net nic,model=virtio -net user,hostfwd=tcp::10022-:22 -m 1G -nographic; \
 	else \
 		qemu-system-$(ARCH) \
-		-drive format=raw,file=/tmp/lima/$(OUT_IMG),if=virtio \
+		-drive format=raw,file=$(IMAGE_DIR)/$(OUT_IMG),if=virtio \
 		-net nic,model=virtio -net user,hostfwd=tcp::10022-:22 -m 1G -nographic; \
     fi
 
