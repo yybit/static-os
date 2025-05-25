@@ -39,8 +39,11 @@ const AUTHORIZED_KEYS_PATH: &str = "/var/authorized_keys";
 const EMPTY_IMAGE_TAR: &str = "/opt/images/empty-image.tar";
 const EMPTY_IMAGE_TAG: &str = "empty:latest";
 
-const OPENSSH_IMAGE_TAR: &str = "/opt/images/openssh-server.tar";
-const OPENSSH_IMAGE_TAG: &str = "linuxserver/openssh-server:latest";
+const ALPINE_IMAGE_TAR: &str = "/opt/images/alpine-image.tar";
+const ALPINE_IMAGE_TAG: &str = "alpine:latest";
+
+const OPENSSH_IMAGE_TAR: &str = "/opt/images/openssh-image.tar";
+const OPENSSH_IMAGE_TAG: &str = "static-os/openssh:latest";
 const OPENSSH_COMPOSE_FILE: &str = "/etc/openssh-compose.yaml";
 
 const LIMA_COMPOSE_FILE: &str = "/etc/lima-compose.yaml";
@@ -195,10 +198,11 @@ fn lima() {
         None
     });
 
-    if vport_device_name == None {
-        println!("Ignore lima configuration.");
-        return;
-    }
+    // TODO: Support lima without virtio port
+    // if vport_device_name == None {
+    //     println!("Ignore lima configuration.");
+    //     return;
+    // }
 
     let dev = env::var("LIMA_CIDATA_DEV").unwrap_or(DEFAULT_LIMA_CIDATA_DEV.to_string());
     let mnt = env::var("LIMA_CIDATA_MNT").unwrap_or(DEFAULT_LIMA_CIDATA_MNT.to_string());
@@ -274,18 +278,30 @@ fn lima() {
             .output()
             .unwrap();
     }
-    // let openssh_image_exist = Command::new(NERDCTL_PATH)
-    //     .args(["image", "inspect", OPENSSH_IMAGE_TAG])
-    //     .output()
-    //     .unwrap();
-    // if !openssh_image_exist.status.success() {
-    //     let openssh_image_reader = File::open(OPENSSH_IMAGE_TAR).unwrap();
-    //     Command::new(NERDCTL_PATH)
-    //         .args(["load"])
-    //         .stdin(openssh_image_reader)
-    //         .output()
-    //         .unwrap();
-    // }
+    let alpine_image_exist = Command::new(NERDCTL_PATH)
+        .args(["image", "inspect", ALPINE_IMAGE_TAG])
+        .output()
+        .unwrap();
+    if !alpine_image_exist.status.success() {
+        let alpine_image_reader = File::open(ALPINE_IMAGE_TAR).unwrap();
+        Command::new(NERDCTL_PATH)
+            .args(["load"])
+            .stdin(alpine_image_reader)
+            .output()
+            .unwrap();
+    }
+    let openssh_image_exist = Command::new(NERDCTL_PATH)
+        .args(["image", "inspect", OPENSSH_IMAGE_TAG])
+        .output()
+        .unwrap();
+    if !openssh_image_exist.status.success() {
+        let openssh_image_reader = File::open(OPENSSH_IMAGE_TAR).unwrap();
+        Command::new(NERDCTL_PATH)
+            .args(["load"])
+            .stdin(openssh_image_reader)
+            .output()
+            .unwrap();
+    }
 
     let lima_env_reader = File::open(Path::new(&mnt).join("lima.env")).unwrap();
     let envs = io::BufReader::new(lima_env_reader)

@@ -8,7 +8,8 @@ esac
 
 case "$(uname)" in
   Darwin) display=cocoa;;
-  Linux) display=gtk;;
+  # Linux) display=gtk;;
+  Linux) display=none;;
 esac
 cat <<EOF >"${Variant}.yaml"
 arch: "${ARCH}"
@@ -16,13 +17,11 @@ images:
 - location: "/tmp/lima/${OUT_IMG}"
   arch: "${ARCH}"
 mounts:
-- location: "~/projects"
-  writable: false
 - location: "/tmp/lima"
   writable: true
 mountType: 9p
 ssh:
-  localPort: 40022
+  localPort: 0
 firmware:
   legacyBIOS: $legacyBIOS
 video:
@@ -33,7 +32,10 @@ containerd:
 provision:
 - mode: dependency
   skipDefaultDependencyResolution: true
+  script: |
+    #!/bin/sh
+    set -eu
 EOF
 
 limactl delete -f "${Variant}"
-limactl start --tty=false "${Variant}.yaml"
+limactl start --debug --tty=false "${Variant}.yaml"

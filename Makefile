@@ -7,9 +7,9 @@ CONTAINERD_VERSION=1.7.12
 NERDCTL_VERSION=1.7.3
 CACERT_VERSION=2023-12-12
 IPTABLES_VERSION=1.8.10
-ZLIB_VERSION=1.3.1
-OPENSSL_VERSION=3.2.1
-OPENSSH_VERSION=V_9_6_P1
+# ZLIB_VERSION=1.3.1
+# OPENSSL_VERSION=3.2.1
+# OPENSSH_VERSION=V_9_6_P1
 
 ARCH ?= $(shell uname -m)
 ifeq ($(strip $(ARCH)),arm64)
@@ -59,9 +59,6 @@ builder: assets
 	--build-arg NERDCTL_VERSION=$(NERDCTL_VERSION) \
 	--build-arg CACERT_VERSION=$(CACERT_VERSION) \
 	--build-arg IPTABLES_VERSION=$(IPTABLES_VERSION) \
-	--build-arg ZLIB_VERSION=$(ZLIB_VERSION) \
-	--build-arg OPENSSL_VERSION=$(OPENSSL_VERSION) \
-	--build-arg OPENSSH_VERSION=$(OPENSSH_VERSION) \
 	--build-arg ARCH=$(ARCH) \
 	--build-arg ARCH_ALIAS=$(ARCH_ALIAS) \
 	--build-arg ARCH_KERNEL=$(ARCH_KERNEL) \
@@ -116,11 +113,9 @@ assets: \
 	assets/nerdctl-$(NERDCTL_VERSION)-linux-$(ARCH_ALIAS).tar.gz \
 	assets/cacert-$(CACERT_VERSION).cer \
 	assets/iptables-$(IPTABLES_VERSION).tar.xz \
-	assets/empty-image.tar \
-	assets/zlib-$(ZLIB_VERSION).tar.gz \
-	assets/openssl-$(OPENSSL_VERSION).tar.gz \
-	assets/openssh-portable-$(OPENSSH_VERSION).tar.gz \
-	assets/openssh-portable-$(OPENSSH_VERSION)-$(ARCH_ALIAS).tar.gz \
+	assets/empty-image-$(ARCH_ALIAS).tar \
+	assets/alpine-image-$(ARCH_ALIAS).tar \
+	assets/openssh-image-$(ARCH_ALIAS).tar \
 	assets/iptables-$(IPTABLES_VERSION)-$(ARCH_ALIAS) \
 	assets/vmlinuz-$(LINUX_VERSION)-$(ARCH_ALIAS) \
 	assets/busybox-$(BUSYBOX_VERSION)-$(ARCH_ALIAS) \
@@ -156,31 +151,41 @@ assets/zlib-$(ZLIB_VERSION).tar.gz:
 assets/openssl-$(OPENSSL_VERSION).tar.gz:
 	curl -o $@ -L https://github.com/openssl/openssl/releases/download/openssl-$(OPENSSL_VERSION)/openssl-$(OPENSSL_VERSION).tar.gz
 
-assets/openssh-portable-$(OPENSSH_VERSION).tar.gz:
-	curl -o $@ -L https://github.com/openssh/openssh-portable/archive/refs/tags/$(OPENSSH_VERSION).tar.gz
+# assets/openssh-portable-$(OPENSSH_VERSION).tar.gz:
+# 	curl -o $@ -L https://github.com/openssh/openssh-portable/archive/refs/tags/$(OPENSSH_VERSION).tar.gz
 
-assets/empty-image.tar:
-	$(DOCKER_CLI) build -t empty -f pkgs/empty/Dockerfile .
-	$(DOCKER_CLI) save empty > $@
+assets/empty-image-$(ARCH_ALIAS).tar:
+	$(DOCKER_CLI) build -t empty --platform linux/$(ARCH_ALIAS) -f pkgs/empty/Dockerfile .
+	$(DOCKER_CLI) save --platform linux/$(ARCH_ALIAS) empty > $@
 
-assets/openssh-server.tar:
-	$(DOCKER_CLI) pull linuxserver/openssh-server:latest
-	$(DOCKER_CLI) save linuxserver/openssh-server:latest > $@
+assets/alpine-image-$(ARCH_ALIAS).tar:
+	$(DOCKER_CLI) save --platform linux/$(ARCH_ALIAS) alpine > $@
 
-.PHONY: openssh
-openssh:
+assets/openssh-image-$(ARCH_ALIAS).tar:
 	$(DOCKER_CLI) build -t $(OPENSSH_TAG) \
-	--build-arg ZLIB_VERSION=$(ZLIB_VERSION) \
-	--build-arg OPENSSL_VERSION=$(OPENSSL_VERSION) \
-	--build-arg OPENSSH_VERSION=$(OPENSSH_VERSION) \
 	--build-arg BASE_IMAGE=$(BASE_IMAGE) \
 	--platform linux/$(ARCH_ALIAS) \
-	-f pkgs/openssh/Dockerfile \
-	.
+	pkgs/openssh
+	$(DOCKER_CLI) save --platform linux/$(ARCH_ALIAS) $(OPENSSH_TAG) > $@
 
-assets/openssh-portable-$(OPENSSH_VERSION)-$(ARCH_ALIAS).tar.gz:
-	$(DOCKER_CLI) run --rm -v ${PWD}:/app --platform linux/$(ARCH_ALIAS) $(OPENSSH_TAG) \
-	sh -c 'cd /var/openssh && tar -zhcvf /app/$@ bin sbin'
+# assets/openssh-server.tar:
+# 	$(DOCKER_CLI) pull linuxserver/openssh-server:latest
+# 	$(DOCKER_CLI) save linuxserver/openssh-server:latest > $@
+
+# .PHONY: openssh
+# openssh:
+# 	$(DOCKER_CLI) build -t $(OPENSSH_TAG) \
+# 	--build-arg ZLIB_VERSION=$(ZLIB_VERSION) \
+# 	--build-arg OPENSSL_VERSION=$(OPENSSL_VERSION) \
+# 	--build-arg OPENSSH_VERSION=$(OPENSSH_VERSION) \
+# 	--build-arg BASE_IMAGE=$(BASE_IMAGE) \
+# 	--platform linux/$(ARCH_ALIAS) \
+# 	-f pkgs/openssh/Dockerfile \
+# 	.
+
+# assets/openssh-portable-$(OPENSSH_VERSION)-$(ARCH_ALIAS).tar.gz:
+# 	$(DOCKER_CLI) run --rm -v ${PWD}:/app --platform linux/$(ARCH_ALIAS) $(OPENSSH_TAG) \
+# 	sh -c 'cd /var/openssh && tar -zhcvf /app/$@ bin sbin'
 
 .PHONY: iptables
 iptables:

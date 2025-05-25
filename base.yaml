@@ -3,20 +3,21 @@ images:
 - location: "/tmp/lima/example-x86_64-uefi.img"
   arch: "x86_64"
 mounts:
-- location: "~/projects"
-  writable: false
 - location: "/tmp/lima"
   writable: true
 mountType: 9p
 ssh:
-  localPort: 40022
+  localPort: 0
 firmware:
   legacyBIOS: false
 video:
-  display: cocoa
+  display: none
 containerd:
   system: false
   user: false
 provision:
 - mode: dependency
   skipDefaultDependencyResolution: true
+  script: |
+    #!/bin/sh
+    set -eu

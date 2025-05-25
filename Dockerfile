@@ -35,9 +35,11 @@ COPY --chmod=644 conf/fstab ${ROOT_PATH}/etc/fstab
 COPY --chmod=644 conf/sshd_config ${ROOT_PATH}/etc/sshd_config
 COPY --chmod=644 conf/containerd_config.toml ${ROOT_PATH}/etc/containerd/config.toml
 # COPY --chmod=644 assets/openssh-server.tar ${ROOT_PATH}/opt/images/openssh-server.tar
-COPY --chmod=644 assets/empty-image.tar ${ROOT_PATH}/opt/images/empty-image.tar
+COPY --chmod=644 assets/empty-image-${ARCH_ALIAS}.tar ${ROOT_PATH}/opt/images/empty-image.tar
+COPY --chmod=644 assets/alpine-image-${ARCH_ALIAS}.tar ${ROOT_PATH}/opt/images/alpine-image.tar
+COPY --chmod=644 assets/openssh-image-${ARCH_ALIAS}.tar ${ROOT_PATH}/opt/images/openssh-image.tar
 RUN cd ${ROOT_PATH} && mkdir -p dev sys proc var tmp run etc/cni var/cni && touch etc/passwd etc/group
-ADD assets/openssh-portable-${OPENSSH_VERSION}-${ARCH_ALIAS}.tar.gz ${ROOT_PATH}/
+# ADD assets/openssh-portable-${OPENSSH_VERSION}-${ARCH_ALIAS}.tar.gz ${ROOT_PATH}/
 COPY --chmod=644 conf/openssh-compose.yaml ${ROOT_PATH}/etc/openssh-compose.yaml
 COPY --chmod=644 conf/lima-compose.yaml ${ROOT_PATH}/etc/lima-compose.yaml
 COPY --chmod=644 conf/acpid.conf ${ROOT_PATH}/etc/acpid.conf
